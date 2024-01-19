@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore")
 module_dir = os.path.dirname(os.path.realpath(__file__))
 root_dir = os.path.dirname(module_dir)
 # Input data directory to read training and test data from
-input_dir = os.path.join("C:/","Users", "remyl", "Documents", "Atlas_internship", "UA_input_data")
+input_dir = os.path.join("/data/atlas/chakkappai/Full_dataset_21_12_2023", "input_data")
 # Output data directory to write predictions to
 output_dir = os.path.join(root_dir, "sample_result_submission")
 # Program directory
