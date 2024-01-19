@@ -6,6 +6,7 @@ import numpy as np
 import json
 from datetime import datetime as dt
 import matplotlib.pyplot as plt
+import sys
 import io
 import base64
 
@@ -13,8 +14,31 @@ import base64
 # Default Directories
 # ------------------------------------------
 # # root directory
+<<<<<<< HEAD
 module_dir = os.path.dirname(os.path.realpath(__file__))
 root_dir = os.path.dirname(module_dir)
+=======
+# module_dir = os.path.dirname(os.path.realpath(__file__))
+# root_dir = os.path.dirname(module_dir)
+# # Directory to output computed score into
+# output_dir = os.path.join(root_dir, "scoring_output")
+# # reference data (test labels)
+# reference_dir = os.path.join(root_dir, "reference_data")
+# # submitted/predicted lables
+# prediction_dir = os.path.join(root_dir, "sample_result_submission")
+# # score file to write score into
+# score_file = os.path.join(output_dir, "scores.json")
+# # html file to write score and figures into
+# html_file = os.path.join(output_dir, 'detailed_results.html')
+
+# ------------------------------------------
+# Codabench Directories
+# ------------------------------------------
+# root directory
+root_dir = "/app"
+# Directory read predictions and solutions from
+input_dir = os.path.join(root_dir, "input")
+>>>>>>> upstream/master
 # Directory to output computed score into
 output_dir = os.path.join(root_dir, "scoring_output")
 # reference data (test labels)
@@ -256,8 +280,15 @@ if __name__ == "__main__":
     print("### Scoring Program")
     print("############################################\n")
 
+    if len(sys.argv) > 1:
+        output_dir = sys.argv[1]
+    
+    if len(sys.argv) > 2:
+        prediction_dir = sys.argv[2]
+        
     # Init scoring
     scoring = Scoring()
+
 
     # Start timer
     scoring.start_timer()
