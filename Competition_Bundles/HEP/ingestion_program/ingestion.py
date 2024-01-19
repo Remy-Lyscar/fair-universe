@@ -17,31 +17,31 @@ warnings.filterwarnings("ignore")
 # ------------------------------------------
 # Default Directories
 # ------------------------------------------
-# # Root directory
-# module_dir = os.path.dirname(os.path.realpath(__file__))
-# root_dir = os.path.dirname(module_dir)
-# # Input data directory to read training and test data from
-# input_dir = os.path.join(root_dir,"input_data")
-# # Output data directory to write predictions to
-# output_dir = os.path.join(root_dir, "sample_result_submission")
-# # Program directory
-# program_dir = os.path.join(root_dir, "ingestion_program")
-# # Directory to read submitted submissions from
-# submission_dir = os.path.join(root_dir, "sample_code_submission")
-
-# ------------------------------------------
-# Codabench Directories
-# ------------------------------------------
 # Root directory
-root_dir = "/app"
+module_dir = os.path.dirname(os.path.realpath(__file__))
+root_dir = os.path.dirname(module_dir)
 # Input data directory to read training and test data from
-input_dir = os.path.join(root_dir, "input_data")
+input_dir = os.path.join("C:/","Users", "remyl", "Documents", "Atlas_internship", "UA_input_data")
 # Output data directory to write predictions to
-output_dir = os.path.join(root_dir, "output")
+output_dir = os.path.join(root_dir, "sample_result_submission")
 # Program directory
-program_dir = os.path.join(root_dir, "program")
+program_dir = os.path.join(root_dir, "ingestion_program")
 # Directory to read submitted submissions from
-submission_dir = os.path.join(root_dir, "ingested_program")
+submission_dir = os.path.join(root_dir, "sample_code_submission","XGB_1")
+
+# # ------------------------------------------
+# # Codabench Directories
+# # ------------------------------------------
+# # Root directory
+# root_dir = "/app"
+# # Input data directory to read training and test data from
+# input_dir = os.path.join(root_dir, "input_data")
+# # Output data directory to write predictions to
+# output_dir = os.path.join(root_dir, "output")
+# # Program directory
+# program_dir = os.path.join(root_dir, "program")
+# # Directory to read submitted submissions from
+# submission_dir = os.path.join(root_dir, "ingested_program")
 
 path.append(input_dir)
 path.append(output_dir)
@@ -195,8 +195,8 @@ class Ingestion():
         print("[*] Calling predict method of submitted model")
 
         # get set indices (0-9)
-        # set_indices = np.arange(0, 10)
-        set_indices = np.arange(0, 1)
+        set_indices = np.arange(0, 10)
+        # set_indices = np.arange(0, 1)
         # get test set indices per set (0-99)
         test_set_indices = np.arange(0, 100)
 
@@ -215,7 +215,7 @@ class Ingestion():
             set_mu = self.test_settings["ground_truth_mus"][set_index]
 
             # get bootstrapped dataset from the original test set
-            test_set = self.get_bootstraped_dataset(mu=set_mu, tes=tes, seed=seed)
+            test_set = self.get_bootstraped_dataset(mu=set_mu, tes=1.0, seed=seed)
 
             predicted_dict = self.model.predict(test_set)
             predicted_dict["test_set_index"] = test_set_index

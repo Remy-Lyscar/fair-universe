@@ -9,7 +9,6 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.multioutput import MultiOutputRegressor
-from sklearn import ensemble
 
 # ------------------------------
 # Absolute path to submission dir
@@ -152,9 +151,11 @@ class Model():
     def _init_model(self):
         print("[*] - Intialize Baseline Model (XBM Classifier Model)")
 
-        self.model = ensemble.HistGradientBoostingClassifier()
-
-        
+        self.model = XGBClassifier(
+            tree_method="hist",
+            use_label_encoder=False,
+            eval_metric=['logloss', 'auc']
+        )
     def _generate_validation_sets(self):
         print("[*] - Generating Validation sets")
 
@@ -237,7 +238,7 @@ class Model():
         self.validation_sets = []
         # Loop 10 times to generate 10 validation sets
         for i in range(0, 20):
-            tes = 1.0
+            tes = round(np.random.uniform(0.9, 1.10), 2)
             # apply systematics
             valid_df_temp = valid_df.copy()
             valid_df_temp["weights"] = valid_weights
@@ -311,8 +312,7 @@ class Model():
         self.model.fit(X, y, sample_weight=w)
 
     def _return_score(self, X):
-        y_pred_skgb = self.model.predict_proba(X)[:,1]
-        y_predict = y_pred_skgb.ravel()
+        y_predict = self.model.predict(X)
         return y_predict
 
     def _predict(self, X, theta):
@@ -320,13 +320,13 @@ class Model():
         predictions = np.where(Y_predict > theta, 1, 0)
         return predictions
 
-    # def N_calc_2(self, weights, n=1000):
-    #     total_weights = []
-    #     for i in range(n):
-    #         bootstrap_weights = bootstrap(weights=weights, seed=42+i)
-    #         total_weights.append(np.array(bootstrap_weights).sum())
-    #     n_calc_array = np.array(total_weights)
-    #     return n_calc_array
+    def N_calc_2(self, weights, n=1000):
+        total_weights = []
+        for i in range(n):
+            bootstrap_weights = bootstrap(weights=weights, seed=42+i)
+            total_weights.append(np.array(bootstrap_weights).sum())
+        n_calc_array = np.array(total_weights)
+        return n_calc_array
 
     def mu_hat_calc(self):
 
