@@ -18,29 +18,13 @@ warnings.filterwarnings("ignore")
 # ------------------------------------------
 # Default Directories
 # ------------------------------------------
-<<<<<<< HEAD
-=======
-# # Root directory
-# module_dir = os.path.dirname(os.path.realpath(__file__))
-# root_dir = os.path.dirname(module_dir)
-# # Input data directory to read training and test data from
-# input_dir = os.path.join(root_dir, "input_data")
-# # Output data directory to write predictions to
-# output_dir = os.path.join(root_dir, "sample_result_submission")
-# # Program directory
-# program_dir = os.path.join(root_dir, "ingestion_program")
-# # Directory to read submitted submissions from
-# submission_dir = os.path.join(root_dir, "sample_code_submission","1 bin nll")
-
-# ------------------------------------------
-# Codabench Directories
-# ------------------------------------------
->>>>>>> upstream/master
 # Root directory
 module_dir = os.path.dirname(os.path.realpath(__file__))
 root_dir = os.path.dirname(module_dir)
 # Input data directory to read training and test data from
-input_dir = os.path.join("/data/atlas/chakkappai/Full_dataset_21_12_2023", "input_data")
+# input_dir = os.path.join("C:/","Users", "remyl", "Documents", "Atlas_internship","UA_input_data")
+input_dir = os.path.join("/remyl", "Documents", "Atlas_internship","UA_input_data")
+
 # Output data directory to write predictions to
 output_dir = os.path.join(root_dir, "sample_result_submission")
 # Program directory
@@ -219,8 +203,8 @@ class Ingestion():
         print("[*] Calling predict method of submitted model")
 
         # get set indices (0-9)
-        set_indices = np.arange(0, 10)
-        # set_indices = np.arange(0, 1)
+        # set_indices = np.arange(0, 10)
+        set_indices = np.arange(0, 1)
         # get test set indices per set (0-99)
         test_set_indices = np.arange(0, 100)
 
