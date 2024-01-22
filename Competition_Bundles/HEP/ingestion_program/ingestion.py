@@ -22,8 +22,8 @@ warnings.filterwarnings("ignore")
 module_dir = os.path.dirname(os.path.realpath(__file__))
 root_dir = os.path.dirname(module_dir)
 # Input data directory to read training and test data from
-input_dir = os.path.join("/data","atlas", "chakkappai", "Full_dataset_21_12_2023", "input_data")
-# input_dir = os.path.join("C:/","Users", "remyl", "fair-universe", "input_data")
+# input_dir = os.path.join("/data","atlas", "chakkappai", "Full_dataset_21_12_2023", "input_data")
+input_dir = os.path.join("C:/","Users", "remyl", "fair-universe", "input_data")
 # input_dir = os.path.join("/remyl", "Documents", "Atlas_internship","UA_input_data")
 
 # Output data directory to write predictions to
@@ -31,7 +31,7 @@ output_dir = os.path.join(root_dir, "sample_result_submission")
 # Program directory
 program_dir = os.path.join(root_dir, "ingestion_program")
 # Directory to read submitted submissions from
-submission_dir = os.path.join(root_dir, "sample_code_submission","XGB_1")
+submission_dir = os.path.join(root_dir, "models","Sequential_NN")
 
 # # ------------------------------------------
 # # Codabench Directories

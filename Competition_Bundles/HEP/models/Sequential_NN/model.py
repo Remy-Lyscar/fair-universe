@@ -7,7 +7,7 @@ from sklearn.utils import shuffle
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn import ensemble
+import tensorflow as tf
 
 # ------------------------------
 # Absolute path to submission dir
@@ -148,9 +148,14 @@ class Model():
         }
 
     def _init_model(self):
-        print("[*] - Intialize Baseline Model (XBM Classifier Model)")
-
-        self.model = ensemble.HistGradientBoostingClassifier()
+        print("[*] - Intialize Baseline Model (SImple Sequential Neural Network with Keras)")
+        self.model = tf.keras.Sequential([
+            tf.keras.layers.Dense(10, activation = 'swish'),
+            tf.keras.layers.Dense(10, activation = 'relu'), 
+            tf.keras.layers.Dense(1, activation  = 'sigmoid')
+        ])
+        
+        self.model.compile(loss="binary_crossentropy", optimizer="adam")
 
         
     def _generate_validation_sets(self):
@@ -306,11 +311,10 @@ class Model():
 
     def _fit(self, X, y, w):
         print("[*] --- Fitting Model")
-        self.model.fit(X, y, sample_weight=w)
+        self.model.fit(X, y, sample_weight=w, epochs = 5)
 
     def _return_score(self, X):
-        y_pred_skgb = self.model.predict_proba(X)[:,1]
-        y_predict = y_pred_skgb.ravel()
+        y_predict = self.model.predict(X).ravel()
         return y_predict
 
     def _predict(self, X, theta):
