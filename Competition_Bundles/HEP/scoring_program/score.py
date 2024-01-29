@@ -21,8 +21,8 @@ input_dir = os.path.join(root_dir, "input")
 # Directory to output computed score into
 output_dir = os.path.join(root_dir, "scoring_output")
 # reference data (test labels)
-reference_dir = os.path.join("/data","atlas", "chakkappai", "Full_dataset_21_12_2023", "reference_data")
-# reference_dir = os.path.join("C:/","Users", "remyl", "fair-universe", "reference_data")
+# reference_dir = os.path.join("/data","atlas", "chakkappai", "Full_dataset_21_12_2023", "reference_data")
+reference_dir = os.path.join("C:/","Users", "remyl", "fair-universe", "reference_data")
 # reference_dir = os.path.join("/remyl", "Documents", "Atlas_internship","UA_reference_data")
 # submitted/predicted lables
 prediction_dir = os.path.join(root_dir, "sample_result_submission")

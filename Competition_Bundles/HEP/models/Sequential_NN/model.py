@@ -150,8 +150,12 @@ class Model():
     def _init_model(self):
         print("[*] - Intialize Baseline Model (SImple Sequential Neural Network with Keras)")
         self.model = tf.keras.Sequential([
-            tf.keras.layers.Dense(100, activation = 'swish'),
-            tf.keras.layers.Dense(100, activation = 'relu'), 
+            tf.keras.layers.Dense(64, activation = 'swish'),
+            tf.keras.layers.Dense(64, activation = 'swish'), 
+            tf.keras.layers.Dense(64, activation = 'swish'), 
+            tf.keras.layers.Dense(64, activation = 'swish'), 
+            tf.keras.layers.Dense(64, activation = 'swish'), 
+            tf.keras.layers.Dense(64, activation = 'swish'), 
             tf.keras.layers.Dense(1, activation  = 'sigmoid')
         ])
         

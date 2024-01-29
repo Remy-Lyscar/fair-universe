@@ -8,6 +8,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn import ensemble
+from sklearn.model_selection import RandomizedSearchCV
 
 # ------------------------------
 # Absolute path to submission dir
@@ -21,6 +22,13 @@ from systematics import postprocess
 # Constants
 # ------------------------------
 EPSILON = np.finfo(float).eps
+
+
+
+HPO = True
+# HPO = False
+
+
 
 
 # ------------------------------
@@ -147,10 +155,21 @@ class Model():
             "p84": mu_p84
         }
 
-    def _init_model(self):
-        print("[*] - Intialize Baseline Model (XBM Classifier Model)")
 
-        self.model = ensemble.HistGradientBoostingClassifier()
+    if HPO == False: 
+        def _init_model(self):
+            print("[*] - Intialize Baseline Model (XBM Classifier Model)")
+
+            self.model = ensemble.HistGradientBoostingClassifier()
+
+    if HPO == True: 
+        def _init_model(self):
+            print("[*] - Intialize Baseline Model (XBM Classifier Model)")
+
+            self.model = RandomizedSearchCV(estimator = XGBClassifier(tree_method="hist",use_label_encoder=False,eval_metric='logloss'),
+                        param_distributions = param_dist_XGB,
+                        scoring='roc_auc',n_iter=10,cv=2)
+
 
         
     def _generate_validation_sets(self):
