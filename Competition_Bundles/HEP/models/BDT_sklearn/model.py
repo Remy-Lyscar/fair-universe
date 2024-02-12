@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn import ensemble
 from sklearn.model_selection import RandomizedSearchCV
+import scipy.stats as stats
 
 # ------------------------------
 # Absolute path to submission dir
@@ -25,8 +26,8 @@ EPSILON = np.finfo(float).eps
 
 
 
-HPO = True
-# HPO = False
+# HPO = True
+HPO = False
 
 
 
@@ -158,17 +159,20 @@ class Model():
 
     if HPO == False: 
         def _init_model(self):
-            print("[*] - Intialize Baseline Model (XBM Classifier Model)")
+            print("[*] - Intialize Baseline Model (HGBC)")
 
-            self.model = ensemble.HistGradientBoostingClassifier()
+            self.model = ensemble.HistGradientBoostingClassifier(learning_rate=0.5675255280646984, max_depth=7)
 
     if HPO == True: 
         def _init_model(self):
-            print("[*] - Intialize Baseline Model (XBM Classifier Model)")
+            print("[*] - Intialize Baseline Model (HPO for HGBC)")
 
-            self.model = RandomizedSearchCV(estimator = XGBClassifier(tree_method="hist",use_label_encoder=False,eval_metric='logloss'),
-                        param_distributions = param_dist_XGB,
-                        scoring='roc_auc',n_iter=10,cv=2)
+            param_dist = {'max_depth': stats.randint(3, 12), 
+                      'learning_rate': stats.uniform(0.1, 0.5)} 
+
+            self.model = RandomizedSearchCV(estimator = ensemble.HistGradientBoostingClassifier(),
+                        param_distributions = param_dist,
+                        scoring='roc_auc',n_iter=10,cv=5)
 
 
         
@@ -323,9 +327,26 @@ class Model():
         )
         print(f"[*] --- AUC train : {auc_train}")
 
-    def _fit(self, X, y, w):
-        print("[*] --- Fitting Model")
-        self.model.fit(X, y, sample_weight=w)
+
+    if HPO == True: 
+        def _fit(self, X, y, w):
+            print("[*] --- Fitting Model for RandomizedSearchCV")
+            self.model.fit(X, y, sample_weight=w)
+            dfsearch=pd.DataFrame.from_dict(self.model.cv_results_)
+            #Printing of the results in a human-readable file to be able to think about HPO later on 
+            path_to_csv = os.path.join("C:/","Users", "remyl", "fair-universe", "Competition_Bundles","HEP","models","BDT_sklearn","cv_results.csv")
+            dfsearch.to_csv(path_to_csv, sep="\t")
+            best_params = self.model.best_params_
+            print("[*] --- Best parameters:", best_params)
+            print("[*] --- Best estimator:", self.model.best_estimator_)
+            print("[*] --- Fitting Model with best paramaters")
+            # self.model.refit(True)
+
+
+    if HPO == False: 
+        def _fit(self, X, y, w): 
+            print("[*] --- Fitting Model")
+            self.model.fit(X, y, sample_weight=w)
 
     def _return_score(self, X):
         y_pred_skgb = self.model.predict_proba(X)[:,1]
