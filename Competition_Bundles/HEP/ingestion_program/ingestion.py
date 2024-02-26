@@ -80,8 +80,8 @@ class Ingestion():
 
         # Input data directory to read training and test data from
         # self.input_dir = os.path.join(root_dir_name, input_data_dir_name)
-        self.input_dir = os.path.join("C:/", "Users","remyl", "fair-universe", "input_data")
-        # self.input_dir = os.path("/data/atlas/chakkappai/Full_dataset_21_12_2023/input_data")
+        # self.input_dir = os.path.join("C:/", "Users","remyl", "fair-universe", "input_data")
+        self.input_dir = os.path("/data/atlas/chakkappai/Full_dataset_21_12_2023/input_data")
         # Output data directory to write predictions to
         self.output_dir = os.path.join(root_dir_name, output_dir_name)
         # Program directory

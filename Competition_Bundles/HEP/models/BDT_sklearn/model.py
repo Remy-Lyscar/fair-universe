@@ -259,7 +259,8 @@ class Model():
         self.validation_sets = []
         # Loop 10 times to generate 10 validation sets
         for i in range(0, 20):
-            tes = 1.0
+            tes = round(np.random.uniform(0.9, 1.10), 2)
+            # tes = 1.0
             # apply systematics
             valid_df_temp = valid_df.copy()
             valid_df_temp["weights"] = valid_weights
@@ -359,13 +360,6 @@ class Model():
         predictions = np.where(Y_predict > theta, 1, 0)  
         return predictions
 
-    # def N_calc_2(self, weights, n=1000):
-    #     total_weights = []
-    #     for i in range(n):
-    #         bootstrap_weights = bootstrap(weights=weights, seed=42+i)
-    #         total_weights.append(np.array(bootstrap_weights).sum())
-    #     n_calc_array = np.array(total_weights)
-    #     return n_calc_array
 
     def mu_hat_calc(self):
 

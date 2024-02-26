@@ -170,16 +170,21 @@ class Model():
         weight_clean = weights_test[Y_hat_test > self.best_theta]
         test_df = test_set['data'][Y_hat_test > self.best_theta]
 
-        test_array = test_df['DER_deltar_lep_had']
+        # test_array = test_df['DER_deltar_lep_had']
+        
+        
         # get n_roi
+        n_roi = (weight_clean.sum())
 
+        mu_hat = (n_roi - self.beta_roi)/self.gamma_roi
 
-        mu_hat, mu_p16, mu_p84 = self._compute_result(weight_clean,test_array)
+        sigma_mu_hat = np.sqrt(n_roi)/self.gamma_roi
 
-        p16 = mu_p16-self.calibration[0]
-        p84 = mu_p84-self.calibration[1]
+        delta_mu_hat = 2*sigma_mu_hat
 
-        delta_mu_hat = mu_p84 - mu_p16
+        mu_p16 = mu_hat - sigma_mu_hat
+        mu_p84 = mu_hat + sigma_mu_hat
+
 
         print(f"[*] --- mu_hat: {mu_hat.mean()}")
         print(f"[*] --- delta_mu_hat: {delta_mu_hat}")
@@ -454,6 +459,7 @@ class Model():
     def _fit(self, X, Y, Z, w):
         print("[*] --- Fitting Model")
         self.model.fit(x=X, y=[Y,Z], sample_weight=w, epochs=4, batch_size=2*1024, verbose=1)
+
     def _return_score(self, X):
         y_predict = self.model.predict(X)
         y_predict = y_predict.pop(0)
@@ -465,6 +471,7 @@ class Model():
         Y_predict = self._return_score(X)
         predictions = (Y_predict > theta).astype(int)
         return predictions
+    
     def _predict_holdout(self):
         print("[*] --- Predicting Holdout set")
         X_holdout = self.holdout['data']
@@ -477,38 +484,27 @@ class Model():
 
 
 
-    def mu_hat_calc(self):  
-        Y_hat_holdout = self.holdout['score']
+    def mu_hat_calc(self):
+
+        self.holdout['data'] = self.scaler.transform(self.holdout['data'])
+        Y_hat_holdout = self._predict(self.holdout['data'], self.best_theta)  
         Y_holdout = self.holdout['labels']
         weights_holdout = self.holdout['weights']
 
-        holdout_array = self.holdout['data']['DER_deltar_lep_had']
         # compute gamma_roi
-        
-        del self.holdout['data']
+        weights_holdout_signal = weights_holdout[Y_holdout == 1]
+        weights_holdout_bkg = weights_holdout[Y_holdout == 0]
 
-        weights = weights_holdout[Y_hat_holdout > self.best_theta]
-        holdout_array = holdout_array[Y_hat_holdout > self.best_theta]
+        Y_hat_holdout_signal = Y_hat_holdout[Y_holdout == 1]
+        Y_hat_holdout_bkg = Y_hat_holdout[Y_holdout == 0]
 
-        Y_holdout = Y_holdout[Y_hat_holdout > self.best_theta]
+        self.gamma_roi = (weights_holdout_signal[Y_hat_holdout_signal == 1]).sum()
 
+        # compute beta_roi
+        self.beta_roi = (weights_holdout_bkg[Y_hat_holdout_bkg == 1]).sum()
+        if self.gamma_roi == 0:
+            self.gamma_roi = EPSILON
 
-        # print ("[*] --- weights shape: ", weights.shape)
-        # print ("[*] --- holdout_array shape: ", holdout_array.shape)
-
-        weights_holdout_signal = weights[Y_holdout == 1]
-        weights_holdout_bkg = weights[Y_holdout == 0]
-
-        self.gamma_roi ,self.bins = np.histogram(holdout_array[Y_holdout == 1],
-                    bins=self.bins, density=False, weights=weights_holdout_signal)
-        
-        self.beta_roi ,self.bins = np.histogram(holdout_array[Y_holdout == 0],
-                    bins=self.bins, density=False, weights=weights_holdout_bkg)
-        
-        mu_hat, mu_p16, mu_p84 = self._compute_result(weights,holdout_array)
-
-        print(f"[*] --- mu_hat: {mu_hat} --- mu_p16: {mu_p16} --- mu_p84: {mu_p84}")
-        print(f"[*] --- gamma_roi: {self.gamma_roi} --- beta_roi: {self.beta_roi}")
 
     def amsasimov_x(self, s, b):
         '''
@@ -632,55 +628,10 @@ class Model():
     def _validate(self):
         for valid_set in self.validation_sets:
             valid_set_sc= self.scaler.transform(valid_set['data'])
+            # valid_set['predictions'] = self._predict(valid_set_sc, self.best_theta)
             valid_set['score'] = self._return_score(valid_set_sc)
 
-
-    def calculate_NLL(self,weights_test,test_array,beta_roi,gamma_roi):
-
-        comb_llr_mu_list = []
-        test_hist ,_ = np.histogram(test_array,
-                    bins=self.bins, density=False, weights=weights_test)
-
-        for mu in (self.mu_scan):
-
-            comb_llr_mu = calculate_comb_llr(mu,test_hist,beta_roi,gamma_roi)
-
-            comb_llr_mu_list.append(comb_llr_mu)
-
-            # print(f"[*] --- comb_llr_mu: {comb_llr_mu_list}")
-
-        comb_llr = np.array(comb_llr_mu_list)
-
-        comb_llr = comb_llr - np.amin(comb_llr)
-
-        if self.plot_count <= 1:
-            plt.plot(self.mu_scan,comb_llr)
-            plt.xlim(0,2)
-            plt.ylim(0,36)
-            plt.xlabel(r'$\mu$')
-            plt.ylabel(r'$t_{\mu}$')
-            plt.title(r'NLL vs $\mu$ for $\mu = 1 $')
-            self.plot_count += 1
-            plt.show()
-
-        return comb_llr
-
     
-    def _compute_result(self,weights_test,test_array):
-        hist_llr = self.calculate_NLL(weights_test,test_array,self.beta_roi,self.gamma_roi)
-
-        # print(f"[*] --- hist_llr: {hist_llr}")
-        # print(f"[*] --- mu_scan: {self.mu_scan}")
-        if (self.mu_scan[np.where((hist_llr <= 1.0) & (hist_llr >= 0.0))].size == 0):
-            p16 = 0
-            p84 = 0
-            mu = 0
-        else:
-            p16 = min(self.mu_scan[np.where((hist_llr <= 1.0) & (hist_llr >= 0.0))])
-            p84 = max(self.mu_scan[np.where((hist_llr <= 1.0) & (hist_llr >= 0.0))]) 
-            mu = self.mu_scan[np.argmin(hist_llr)]
-
-        return mu, p16, p84
     
     def _compute_validation_result(self):
         print("[*] - Computing Validation result")
