@@ -22,7 +22,7 @@ warnings.filterwarnings("ignore")
 CODABENCH = False
 NUM_SETS = 1  # Total = 10
 NUM_PSEUDO_EXPERIMENTS = 100  # Total = 100
-USE_SYSTEAMTICS = True
+USE_SYSTEMATICS = True
 
 
 # ------------------------------------------
@@ -79,14 +79,16 @@ class Ingestion():
             submission_dir_name = "ingested_program"
 
         # Input data directory to read training and test data from
-        self.input_dir = os.path.join(root_dir_name, input_data_dir_name)
+        # self.input_dir = os.path.join(root_dir_name, input_data_dir_name)
+        self.input_dir = os.path.join("C:/", "Users","remyl", "fair-universe", "input_data")
+        # self.input_dir = os.path("/data/atlas/chakkappai/Full_dataset_21_12_2023/input_data")
         # Output data directory to write predictions to
         self.output_dir = os.path.join(root_dir_name, output_dir_name)
         # Program directory
         self.program_dir = os.path.join(root_dir_name, program_dir_name)
         # Directory to read submitted submissions from
-        self.submission_dir = os.path.join(root_dir_name, submission_dir_name)
-
+        # self.submission_dir = os.path.join(root_dir_name, submission_dir_name)
+        self.submission_dir = os.path.join("C:/", "Users","remyl", "fair-universe", "Competition_Bundles", "HEP", "models", "BDT_sklearn")
         # In case submission dir and output dir are provided as args
         if len(sys.argv) > 1:
             self.submission_dir = sys.argv[1]
@@ -221,7 +223,7 @@ class Ingestion():
 
         self.results_dict = {}
         for set_index, test_set_index in all_combinations:
-            if USE_SYSTEAMTICS:
+            if USE_SYSTEMATICS:
                 # random tes value (one per test set)
                 tes = np.random.uniform(0.9, 1.1)
             else:
@@ -232,7 +234,7 @@ class Ingestion():
             set_mu = self.test_settings["ground_truth_mus"][set_index]
 
             # get bootstrapped dataset from the original test set
-            test_set = self.get_bootstraped_dataset(mu=set_mu, tes=1.0, seed=seed)
+            test_set = self.get_bootstraped_dataset(mu=set_mu, tes=tes, seed=seed)
 
             predicted_dict = self.model.predict(test_set)
             predicted_dict["test_set_index"] = test_set_index

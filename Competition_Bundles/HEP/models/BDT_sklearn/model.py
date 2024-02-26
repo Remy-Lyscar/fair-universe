@@ -14,11 +14,12 @@ import scipy.stats as stats
 # ------------------------------
 # Absolute path to submission dir
 # ------------------------------
-submissions_dir = os.path.dirname(os.path.abspath(__file__))
+submissions_dir = os.path.dirname(os.path.abspath(__file__)) 
 path.append(submissions_dir)
 
 
 from systematics import postprocess
+# from bootstrap import bootstrap
 # ------------------------------
 # Constants
 # ------------------------------
@@ -161,7 +162,7 @@ class Model():
         def _init_model(self):
             print("[*] - Intialize Baseline Model (HGBC)")
 
-            self.model = ensemble.HistGradientBoostingClassifier(learning_rate=0.5675255280646984, max_depth=7)
+            self.model = ensemble.HistGradientBoostingClassifier()
 
     if HPO == True: 
         def _init_model(self):
@@ -355,7 +356,7 @@ class Model():
 
     def _predict(self, X, theta):
         Y_predict = self._return_score(X)
-        predictions = np.where(Y_predict > theta, 1, 0)
+        predictions = np.where(Y_predict > theta, 1, 0)  
         return predictions
 
     # def N_calc_2(self, weights, n=1000):
@@ -369,7 +370,7 @@ class Model():
     def mu_hat_calc(self):
 
         self.mu_calc_set['data'] = self.scaler.transform(self.mu_calc_set['data'])
-        Y_hat_mu_calc_set = self._predict(self.mu_calc_set['data'], self.best_theta)
+        Y_hat_mu_calc_set = self._predict(self.mu_calc_set['data'], self.best_theta)  
         Y_mu_calc_set = self.mu_calc_set['labels']
         weights_mu_calc_set = self.mu_calc_set['weights']
 

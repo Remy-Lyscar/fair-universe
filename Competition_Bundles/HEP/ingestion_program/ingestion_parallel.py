@@ -81,13 +81,15 @@ class Ingestion():
             submission_dir_name = "ingested_program"
 
         # Input data directory to read training and test data from
-        self.input_dir = os.path.join(root_dir_name, input_data_dir_name)
+        # self.input_dir = os.path.join(root_dir_name, input_data_dir_name)
+        self.input_dir = os.path.join("C:/", "Users","remyl", "fair-universe", "input_data")
         # Output data directory to write predictions to
         self.output_dir = os.path.join(root_dir_name, output_dir_name)
         # Program directory
         self.program_dir = os.path.join(root_dir_name, program_dir_name)
         # Directory to read submitted submissions from
-        self.submission_dir = os.path.join(root_dir_name, submission_dir_name)
+        # self.submission_dir = os.path.join(root_dir_name, submission_dir_name)
+        self.submission_dir = os.path.join("C:/", "Users","remyl", "fair-universe", "Competition_Bundles", "HEP", "models", "BDT_sklearn")
 
         # In case submission dir and output dir are provided as args
         if len(sys.argv) > 1:
