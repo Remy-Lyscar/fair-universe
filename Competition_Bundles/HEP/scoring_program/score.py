@@ -34,7 +34,7 @@ class Scoring:
 
     def stop_timer(self):
         self.end_time = dt.now()
-
+ 
     def get_duration(self):
         if self.start_time is None:
             print("[-] Timer was never started. Returning None")
