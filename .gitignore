@@ -23,3 +23,8 @@ Competition_Bundles/HEP_Inverted/sample_code_submission/
 
 input_data
 reference_data
+
+Competition_Bundles/HEP/scoring_output/*
+
+Competition_Bundles/HEP/models/Sequential_NN/result_0.json
+Competition_Bundles/HEP/models/DANN/result_0.json
