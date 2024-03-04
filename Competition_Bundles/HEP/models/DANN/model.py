@@ -633,8 +633,9 @@ class Model():
         save_path_s = os.path.join(submissions_dir, "Plots and serialization/")
         plot_file_s = os.path.join(save_path_s, "DANN_s.png")
 
-        plt.close(fig_s) # So the figure is not diplayed 
         plt.savefig(plot_file_s)
+        plt.close(fig_s) # So the figure is not diplayed 
+        
 
 
 
@@ -649,8 +650,9 @@ class Model():
         save_path_b = os.path.join(submissions_dir, "Plots and serialization/")
         plot_file_b = os.path.join(save_path_b, "DANN_b.png")
 
-        plt.close(fig_b) # So the figure is not diplayed 
         plt.savefig(plot_file_b)
+        plt.close(fig_b) # So the figure is not diplayed 
+        
 
 
 
