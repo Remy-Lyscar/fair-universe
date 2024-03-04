@@ -37,6 +37,8 @@ class Ingestion():
         self.end_time = None
         self.model = None
         self.train_set = None
+        self.test_duration = None
+        self.fit_duration = None
 
     def start_timer(self):
         self.start_time = dt.now()
@@ -58,6 +60,8 @@ class Ingestion():
     def show_duration(self):
         print("\n---------------------------------")
         print(f'[✔] Total duration: {self.get_duration()}')
+        print(f'[*] Fit duration: {self.fit_duration}')
+        print(f'[*] Test duration: {self.test_duration} ')
         print("---------------------------------")
 
     def set_directories(self):
@@ -206,10 +210,15 @@ class Ingestion():
 
     def fit_submission(self):
         print("[*] Calling fit method of submitted model")
+        t1 = dt.now()
         self.model.fit()
+        t2 = dt.now()
+        self.fit_duration = t2 -  t1
 
     def predict_submission(self):
         print("[*] Calling predict method of submitted model")
+
+        t1 = dt.now()
 
         # get set indices
         set_indices = np.arange(0, NUM_SETS)
@@ -245,6 +254,10 @@ class Ingestion():
                 self.results_dict[set_index] = []
             self.results_dict[set_index].append(predicted_dict)
 
+        t2 = dt.now()
+        self.test_duration = t2 - t1
+
+        
     def save_result(self):
         print("[*] Saving ingestion result")
 

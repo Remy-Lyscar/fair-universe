@@ -10,6 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn import ensemble
 from sklearn.model_selection import RandomizedSearchCV
 import scipy.stats as stats
+import matplotlib.pyplot as plt 
 
 # ------------------------------
 # Absolute path to submission dir
@@ -551,3 +552,26 @@ class Model():
             print(f"[*] --- mu: {np.round(valid_set['settings']['ground_truth_mu'], 4)} --- mu_hat: {np.round(mu_hat, 4)} --- delta_mu_hat: {np.round(delta_mu_hat, 4)}")
 
         print(f"[*] --- validation delta_mu_hat (avg): {np.round(np.mean(self.validation_delta_mu_hats), 4)}")
+
+
+
+    def _save_model(self):
+        print("[*] - Saving Model and Plots")
+
+
+        settings = {
+            "threshold": self.threshold,
+            "calibration": self.calibration,
+            "control_bins": self.control_bins,
+            "bin_nums": self.bins,
+            "coef_s_list": self.coef_s_list,
+            "coef_b_list": self.coef_b_list
+        }
+
+
+        fig = plt.figure()
+
+        plt.close(fig) # So the figure is not diplayed 
+        plt.savefig() # the figure should be save in the same folder as the settings (serialzation of the model)
+
+        
