@@ -495,7 +495,7 @@ class Model():
         b_list = [[] for _ in range(self.bins)]
         
         for theta in tqdm(theta_list):
-            s , b = self.theta_fuction(theta)   # ??
+            s , b = self.nominal_histograms(theta)  
 
             for i in range(len(s)):
                 s_list[i].append(s[i])

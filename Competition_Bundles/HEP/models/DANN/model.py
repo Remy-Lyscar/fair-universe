@@ -12,13 +12,17 @@ import matplotlib.pyplot as plt
 import json
 import pickle
 
+# import mplhep as hep
+
+# hep.set_style("ATLAS")
+
 
 
 from keras.models import Sequential
 # ------------------------------
 # Absolute path to submission dir
 # ------------------------------
-submissions_dir = os.path.dirname(os.path.abspath(__file__))
+submissions_dir = os.path.dirname(os.path.abspath(__file__))  #returns absolute path of __file__
 path.append(submissions_dir)
 
 from systematics import postprocess
@@ -33,8 +37,8 @@ from tensorflow.keras import backend as K
 # ------------------------------
 EPSILON = np.finfo(float).eps
 
-hist_analysis_dir = os.path.dirname(submissions_dir)
-path.append(hist_analysis_dir)
+# hist_analysis_dir = os.path.dirname(submissions_dir)
+# path.append(hist_analysis_dir)
 
 # from hist_analysis import calculate_comb_llr
 
@@ -107,11 +111,11 @@ class Model():
 
         # Intialize class variables
         self.validation_sets = None
-        self.theta_candidates = np.arange(0.4, 0.95, 0.02)
-        self.best_theta = 0.7
+        self.threshold_candidates = np.arange(0.4, 0.95, 0.02)
+        self.threshold = 0.7
         self.bins = 1
         self.scaler = StandardScaler()
-        self.mu_scan = np.linspace(0, 4, 100)
+        self.mu_scan = np.linspace(0, 4, 100)   # ??
         self.plot_count = 2
         self.calibration = None
 
@@ -132,11 +136,11 @@ class Model():
         self._init_model()
         self._train()
         self._predict_holdout()
-        # self._choose_theta()
         self.mu_hat_calc()
         # self._validate()
         # self._compute_validation_result()
-        # self._save_model()
+        self._theta_plot()
+        self._save_model()
 
     def predict(self, test_set):
         """
@@ -167,8 +171,8 @@ class Model():
         print(f"[*] --- total weight train: {weights_train.sum()}")
         print(f"[*] --- total weight mu_cals_set: {self.holdout['weights'].sum()}")
 
-        weight_clean = weights_test[Y_hat_test > self.best_theta]
-        test_df = test_set['data'][Y_hat_test > self.best_theta]
+        weight_clean = weights_test[Y_hat_test > self.threshold]
+        test_df = test_set['data'][Y_hat_test > self.threshold]
         
         
         # get n_roi
@@ -440,7 +444,7 @@ class Model():
         self._fit(train_tes_data, tes_label, tes_syst, weights_train)
 
         # print("[*] --- Predicting Train set")
-        # self.train_set['predictions'] = (self.train_set['data'], self.best_theta)
+        # self.train_set['predictions'] = (self.train_set['data'], self.threshold)
 
         # self.train_set['score'] = self._return_score(self.train_set['data'])
 
@@ -485,7 +489,7 @@ class Model():
     def mu_hat_calc(self):
 
         self.holdout['data'] = self.scaler.transform(self.holdout['data'])
-        Y_hat_holdout = self._predict(self.holdout['data'], self.best_theta)  
+        Y_hat_holdout = self._predict(self.holdout['data'], self.threshold)  
         Y_holdout = self.holdout['labels']
         weights_holdout = self.holdout['weights']
 
@@ -521,6 +525,8 @@ class Model():
             print(2*((s+b)*log(1+float(s)/b)-s))
         # return s/sqrt(s+b)
 
+
+
     def del_mu_stat(self, s, b):
         '''
         This function calculates the statistical uncertainty on the signal strength.
@@ -549,84 +555,109 @@ class Model():
             'weights': meta_validation_weights
         }
 
-    # def _choose_theta_new(self):
-
-    #     self.holdout['score']
 
 
-    #     hold_out_hist, hold_out_bins = np.histogram(self.holdout['score'],
-    #         bins=30, density=False, weights=self.holdout['weights'])
+    def nominal(self, theta):
+        """
+        Params: theta (the systematics) 
+
+        Functionality: determine nominal s and b, ie the signal rate and the background rate in
+                       the region of interest for different thetas (ie for different value for tes)
+
+        Returns: s, b
+        """
+
+        X_holdout = self.holdout['data'].copy()
+        X_holdout['weights'] = self.holdout['weights'].copy()
+        X_holdout['labels'] = self.holdout['labels'].copy()
+
+        holdout_syst = self.systematics(
+            data=X_holdout.copy(),
+            tes=theta
+        ).data
+
+
+        label_holdout = holdout_syst.pop('labels')
+        weights_holdout = holdout_syst.pop('weights')
+
+        X_holdout_sc = self.scaler.transform(holdout_syst)
+        holdout_val = self._return_score(X_holdout_sc)
+
+        weights_holdout_signal = weights_holdout[label_holdout == 1]
+        weights_holdout_bkg = weights_holdout[label_holdout == 0]
+
+
+        holdout_val_signal = holdout_val[label_holdout ==1]
+        holdout_val_bkg = holdout_val[label_holdout ==0]
+
+        s = (weights_holdout_signal[holdout_val>self.threshold]).sum()  # same threshold?? 
+        b = (weights_holdout_bkg[holdout_val_bkg>self.threshold]).sum()
+        if s == 0:
+            s = EPSILON
+
+
+        return s, b
+    
+
+
+    def _theta_plot(self):
+        """
+        Params: None
+
+        Functionality: Save the plots in the same file as the model serialization (see _save_model)
+
+        Returns: None
+        """
+
+        print("[*] Saving the plots")
+
         
-    #     min_bin = np.argmin(hold_out_hist)
-
-    #     theta = self.holdout['score'][self.holdout['score'] > 
-
-    def _choose_theta(self):
-
-        print("[*] Choose best theta")
-
-        meta_validation_set = self.validation_set
-        val_min = 1
-        # Loop over theta candidates
-        # try each theta on meta-validation set
-        # choose best theta
-        for theta in tqdm(self.theta_candidates):
-            meta_validation_set_df_sc = self.scaler.transform(meta_validation_set["data"])
-            meta_validation_set['score'] = self._return_score(meta_validation_set_df_sc)
-
-            weights_valid = meta_validation_set["weights"].copy()
-            valid_df = meta_validation_set["data"][meta_validation_set['score'] > theta]
-            valid_array = valid_df['DER_deltar_lep_had']
-            weights_valid = weights_valid[meta_validation_set['score'] > theta]  
-            Y_hat_valid = meta_validation_set['score'][meta_validation_set['score'] > theta] 
-            # Get predictions from trained model
+        theta_list = np.linspace(0.9,1.1,10)
+        s_list = []
+        b_list = []
+        
+        for theta in tqdm(theta_list):
+            s , b = self.nominal(theta)
+            # print(f"[*] --- s: {s}")
+            # print(f"[*] --- b: {b}")
 
 
-            # get region of interest
+        fig_s = plt.figure()
+        plt.plot(theta_list, s_list, 'b+', label = 's')
+        plt.xlabel('theta')
+        plt.ylabel('events')
+        plt.legend()
+        # hep.atlas.text(loc=1, text='Internal')
 
-            # predict probabilities for holdout
-            holdout_val = self.holdout['data']['DER_deltar_lep_had']
-            Y_hat_holdout = self.holdout['score']
-            Y_holdout = self.holdout['labels']
-            weights_holdout = self.holdout['weights']
-            # compute gamma_roi
+        # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
+        save_path_s = os.path.join(submissions_dir, "Plots and serialization/")
+        plot_file_s = os.path.join(save_path_s, "DANN_s.png")
 
-            weights_holdout = weights_holdout[Y_hat_holdout > theta]
-            holdout_val = holdout_val[Y_hat_holdout > theta]
+        plt.close(fig_s) # So the figure is not diplayed 
+        plt.savefig(plot_file_s)
 
-            Y_holdout = Y_holdout[Y_hat_holdout > theta]
 
-            weights_holdout_signal = weights_holdout[Y_holdout == 1]
-            weights_holdout_bkg = weights_holdout[Y_holdout == 0]
-            bins = self.bins
-            
-            gamma_roi ,bins = np.histogram(holdout_val[Y_holdout == 1],
-                        bins=bins, density=False, weights=weights_holdout_signal)
-            
-            beta_roi , bins = np.histogram(holdout_val[Y_holdout == 0],
-                        bins=bins, density=False, weights=weights_holdout_bkg)
-            
 
-            
-            hist_llr = self.calculate_NLL(weights_valid,valid_array,beta_roi,gamma_roi)
+        fig_b = plt.figure()
+        plt.plot(theta_list, b_list, 'b+', label = 'b')
+        plt.xlabel('theta')
+        plt.ylabel('events')
+        plt.legend()
+        # hep.atlas.text(loc=1, text='Internal')
 
-            val =  np.abs(self.mu_scan[np.argmin(hist_llr)] - 1)
+        # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
+        save_path_b = os.path.join(submissions_dir, "Plots and serialization/")
+        plot_file_b = os.path.join(save_path_b, "DANN_b.png")
 
-            if val < val_min:
-                print("val: ", val)
-                print("gamma_roi: ", gamma_roi)
-                print("beta_roi: ", beta_roi)
-                print("theta: ", theta)
-                print("Uncertainity", np.sqrt(gamma_roi + beta_roi)/gamma_roi)
-                val_min = val
-                self.best_theta = theta
+        plt.close(fig_b) # So the figure is not diplayed 
+        plt.savefig(plot_file_b)
 
-        print(f"[*] --- best theta: {self.best_theta}")
+
 
     def _validate(self):
         for valid_set in self.validation_sets:
             valid_set_sc= self.scaler.transform(valid_set['data'])
-            # valid_set['predictions'] = self._predict(valid_set_sc, self.best_theta)
+            # valid_set['predictions'] = self._predict(valid_set_sc, self.threshold)
             valid_set['score'] = self._return_score(valid_set_sc)
 
     
@@ -646,10 +677,10 @@ class Model():
             valid_set_array = valid_set_df['DER_deltar_lep_had']
             # compute gamma_roi
 
-            weights = weights_valid_set[Y_hat_valid_set > self.best_theta]
-            valid_set_array = valid_set_array[Y_hat_valid_set > self.best_theta]
+            weights = weights_valid_set[Y_hat_valid_set > self.threshold]
+            valid_set_array = valid_set_array[Y_hat_valid_set > self.threshold]
 
-            Y_valid_set = Y_valid_set[Y_hat_valid_set > self.best_theta]
+            Y_valid_set = Y_valid_set[Y_hat_valid_set > self.threshold]
 
             mu_hat, mu_p16, mu_p84 = self._compute_result(weights,valid_set_array)
 
@@ -675,21 +706,33 @@ class Model():
 
     def _save_model(self):
 
-        self.model.save("../DANN_saved/model.keras")
+
+        save_dir= os.path.join(submissions_dir, "Plots and serialization/")
+        model_path = os.path.join(save_dir, "model.keras")
+        settings_path = os.path.join(save_dir, "settings.pkl")
+        scaler_path = os.path.join(save_dir, 'scaler.pkl')
+
+        print("[*] Saving Model")
+        print(f"[*] --- model path: {model_path}")
+        print(f"[*] --- settings path: {settings_path}")
+        print(f"[*] --- scaler path: {scaler_path}")
+
+        self.model.save(model_path)
 
         settings = {
-            "best_theta": self.best_theta,
-            "calibration": self.calibration,
-            "theta_candidates": self.theta_candidates,
-            "bins": self.bins,
-            "mu_scan": self.mu_scan,
+            "threshold": self.threshold,
+            # "calibration": self.calibration,
+            # "threshold_candidates": self.threshold_candidates,
+            # "mu_scan": self.mu_scan,
             "beta_roi": self.beta_roi,
             "gamma_roi": self.gamma_roi
         }
 
         with open("settings.json", "w") as f:
-            json.dump(settings, f)
+            json.dump(settings, f)   #dump serializes a Python object in the file f, here "settings.json"
 
-        pickle.dump(self.scaler, open("scaler.pkl", "wb"))
+        pickle.dump(settings, open(settings_path, "wb"))
+
+        pickle.dump(self.scaler, open(scaler_path, "wb"))
 
         print("[*] - Model saved")
