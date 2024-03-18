@@ -683,7 +683,7 @@ class Model():
         plt.plot(theta_list, s_list, 'b.', label = 's')
         plt.xlabel('theta')
         plt.ylabel('events')
-        plt.legend()
+        plt.legend(loc = 'lower right')
         hep.atlas.text(loc=1, text = " ")
 
         # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
@@ -700,7 +700,7 @@ class Model():
         plt.plot(theta_list, b_list, 'b.', label = 'b')
         plt.xlabel('theta')
         plt.ylabel('events')
-        plt.legend()
+        plt.legend(loc = 'lower right')
         hep.atlas.text(loc=1, text = " ")
 
         # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
