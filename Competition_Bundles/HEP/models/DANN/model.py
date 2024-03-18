@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 import json
 import pickle
 
-# import mplhep as hep
+import mplhep as hep
 
-# hep.set_style("ATLAS")
+hep.set_style("ATLAS")
 
 
 
@@ -488,24 +488,34 @@ class Model():
 
     def mu_hat_calc(self):
 
-        self.holdout['data'] = self.scaler.transform(self.holdout['data'])
-        Y_hat_holdout = self._predict(self.holdout['data'], self.threshold)  
-        Y_holdout = self.holdout['labels']
-        weights_holdout = self.holdout['weights']
+        X_holdout = self.holdout['data'].copy()
+        X_holdout['weights'] = self.holdout['weights'].copy()
+        X_holdout['labels'] = self.holdout['labels'].copy()
 
-        # compute gamma_roi
-        weights_holdout_signal = weights_holdout[Y_holdout == 1]
-        weights_holdout_bkg = weights_holdout[Y_holdout == 0]
+        holdout_post = self.systematics(
+            data = X_holdout.copy(), 
+            tes = 1.0
+        ).data
 
-        Y_hat_holdout_signal = Y_hat_holdout[Y_holdout == 1]
-        Y_hat_holdout_bkg = Y_hat_holdout[Y_holdout == 0]
 
-        self.gamma_roi = (weights_holdout_signal[Y_hat_holdout_signal == 1]).sum()
+        label_holdout = holdout_post.pop('labels')
+        weights_holdout = holdout_post.pop('weights')
+        X_holdout_sc = self.scaler.transform(holdout_post)
 
-        # compute beta_roi
-        self.beta_roi = (weights_holdout_bkg[Y_hat_holdout_bkg == 1]).sum()
+        holdout_score = self._return_score(X_holdout_sc)
+
+        weights_holdout_signal= weights_holdout[label_holdout == 1]
+        weights_holdout_bkg = weights_holdout[label_holdout == 0]
+
+        score_holdout_signal = holdout_score[label_holdout == 1]
+        score_holdout_bkg = holdout_score[label_holdout == 0]
+
+        self.gamma_roi = (weights_holdout_signal[score_holdout_signal > self.threshold]).sum()
         if self.gamma_roi == 0:
             self.gamma_roi = EPSILON
+
+        self.beta_roi = (weights_holdout_bkg[score_holdout_bkg > self.threshold]).sum()
+
 
 
     def amsasimov_x(self, s, b):
@@ -571,34 +581,31 @@ class Model():
         X_holdout['weights'] = self.holdout['weights'].copy()
         X_holdout['labels'] = self.holdout['labels'].copy()
 
-        holdout_syst = self.systematics(
-            data=X_holdout.copy(),
-            tes=theta
+        holdout_post = self.systematics(
+            data = X_holdout.copy(), 
+            tes = theta
         ).data
 
 
-        label_holdout = holdout_syst.pop('labels')
-        weights_holdout = holdout_syst.pop('weights')
+        label_holdout = holdout_post.pop('labels')
+        weights_holdout = holdout_post.pop('weights')
+        X_holdout_sc = self.scaler.transform(holdout_post)
 
-        X_holdout_sc = self.scaler.transform(holdout_syst)
-        holdout_val = self._return_score(X_holdout_sc)
+        holdout_score = self._return_score(X_holdout_sc)
 
-        weights_holdout_signal = weights_holdout[label_holdout == 1]
+        weights_holdout_signal= weights_holdout[label_holdout == 1]
         weights_holdout_bkg = weights_holdout[label_holdout == 0]
 
+        score_holdout_signal = holdout_score[label_holdout == 1]
+        score_holdout_bkg = holdout_score[label_holdout == 0]
 
-        holdout_val_signal = holdout_val[label_holdout ==1]
-        holdout_val_bkg = holdout_val[label_holdout ==0]
-
-        s = (weights_holdout_signal[holdout_val>self.threshold]).sum()  # same threshold?? 
-        b = (weights_holdout_bkg[holdout_val_bkg>self.threshold]).sum()
+        s = (weights_holdout_signal[score_holdout_signal > self.threshold]).sum()
         if s == 0:
             s = EPSILON
 
+        b = (weights_holdout_bkg[score_holdout_bkg > self.threshold]).sum()
 
         return s, b
-    
-
 
     def _theta_plot(self):
         """
@@ -618,6 +625,8 @@ class Model():
         
         for theta in tqdm(theta_list):
             s , b = self.nominal(theta)
+            s_list.append(s)
+            b_list.append(b)
             # print(f"[*] --- s: {s}")
             # print(f"[*] --- b: {b}")
 
@@ -627,7 +636,7 @@ class Model():
         plt.xlabel('theta')
         plt.ylabel('events')
         plt.legend()
-        # hep.atlas.text(loc=1, text='Internal')
+        hep.atlas.text(loc=1, text = " ")
 
         # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
         save_path_s = os.path.join(submissions_dir, "Plots and serialization/")
@@ -644,7 +653,7 @@ class Model():
         plt.xlabel('theta')
         plt.ylabel('events')
         plt.legend()
-        # hep.atlas.text(loc=1, text='Internal')
+        hep.atlas.text(loc=1, text = " ")
 
         # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
         save_path_b = os.path.join(submissions_dir, "Plots and serialization/")
@@ -654,7 +663,7 @@ class Model():
         plt.close(fig_b) # So the figure is not diplayed 
         
 
-
+        del self.holdout
 
     def _validate(self):
         for valid_set in self.validation_sets:

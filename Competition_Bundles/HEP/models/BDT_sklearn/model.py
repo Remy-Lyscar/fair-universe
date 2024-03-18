@@ -16,9 +16,9 @@ import json
 
 
 
-# import mplhep as hep
+import mplhep as hep
 
-# hep.set_style("ATLAS")
+hep.set_style("ATLAS")
 
 # ------------------------------
 # Absolute path to submission dir
@@ -406,25 +406,6 @@ class Model():
 
         self.beta_roi = (weights_holdout_bkg[score_holdout_bkg > self.threshold]).sum()
 
-        # self.mu_calc_set['data'] = self.scaler.transform(self.mu_calc_set['data'])
-        # Y_hat_mu_calc_set = self._predict(self.mu_calc_set['data'], self.threshold)  
-        # Y_mu_calc_set = self.mu_calc_set['labels']
-        # weights_mu_calc_set = self.mu_calc_set['weights']
-
-        # # compute gamma_roi
-        # weights_mu_calc_set_signal = weights_mu_calc_set[Y_mu_calc_set == 1]
-        # weights_mu_calc_set_bkg = weights_mu_calc_set[Y_mu_calc_set == 0]
-
-        # Y_hat_mu_calc_set_signal = Y_hat_mu_calc_set[Y_mu_calc_set == 1]
-        # Y_hat_mu_calc_set_bkg = Y_hat_mu_calc_set[Y_mu_calc_set == 0]
-
-        # self.gamma_roi = (weights_mu_calc_set_signal[Y_hat_mu_calc_set_signal == 1]).sum()
-
-        # # compute beta_roi
-        # self.beta_roi = (weights_mu_calc_set_bkg[Y_hat_mu_calc_set_bkg == 1]).sum()
-        # if self.gamma_roi == 0:
-        #     self.gamma_roi = EPSILON
-
     def amsasimov_x(self, s, b):
         '''
         This function calculates the Asimov crossection significance for a given number of signal and background events.
@@ -595,7 +576,7 @@ class Model():
 
         print(f"[*] --- validation delta_mu_hat (avg): {np.round(np.mean(self.validation_delta_mu_hats), 4)}")
 
-
+        del self.validation_sets
 
 
 
@@ -703,7 +684,7 @@ class Model():
         plt.xlabel('theta')
         plt.ylabel('events')
         plt.legend()
-        # hep.atlas.text(loc=1, text='Internal')
+        hep.atlas.text(loc=1, text = " ")
 
         # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
         save_path_s = os.path.join(submissions_dir, "Plots and serialization/")
@@ -720,7 +701,7 @@ class Model():
         plt.xlabel('theta')
         plt.ylabel('events')
         plt.legend()
-        # hep.atlas.text(loc=1, text='Internal')
+        hep.atlas.text(loc=1, text = " ")
 
         # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
         save_path_b = os.path.join(submissions_dir, "Plots and serialization/")
@@ -729,6 +710,7 @@ class Model():
         plt.savefig(plot_file_b)
         plt.close(fig_b) # So the figure is not diplayed 
 
+        del self.mu_calc_set
 
 
     def _save_model(self):
