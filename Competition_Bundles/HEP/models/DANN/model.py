@@ -623,7 +623,7 @@ class Model():
 
 
         fig_s = plt.figure()
-        plt.plot(theta_list, s_list, 'b+', label = 's')
+        plt.plot(theta_list, s_list, 'b.', label = 's')
         plt.xlabel('theta')
         plt.ylabel('events')
         plt.legend()
@@ -640,7 +640,7 @@ class Model():
 
 
         fig_b = plt.figure()
-        plt.plot(theta_list, b_list, 'b+', label = 'b')
+        plt.plot(theta_list, b_list, 'b.', label = 'b')
         plt.xlabel('theta')
         plt.ylabel('events')
         plt.legend()

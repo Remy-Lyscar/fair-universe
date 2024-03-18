@@ -11,6 +11,14 @@ from sklearn import ensemble
 from sklearn.model_selection import RandomizedSearchCV
 import scipy.stats as stats
 import matplotlib.pyplot as plt 
+import pickle 
+import json 
+
+
+
+# import mplhep as hep
+
+# hep.set_style("ATLAS")
 
 # ------------------------------
 # Absolute path to submission dir
@@ -80,8 +88,8 @@ class Model():
 
         # Intialize class variables
         self.validation_sets = None
-        self.theta_candidates = np.arange(0.5, 0.99, 0.01)
-        self.best_theta = 0.85
+        self.threshold_candidates = np.arange(0.5, 0.99, 0.01)
+        self.threshold = 0.85
         self.scaler = StandardScaler()
         self.scaler_tes = StandardScaler()
 
@@ -104,6 +112,8 @@ class Model():
         self.mu_hat_calc()
         self._validate()
         self._compute_validation_result()
+        self._theta_plot()
+        self._save_model()
 
     def predict(self, test_set):
         """
@@ -124,7 +134,7 @@ class Model():
         print("[*] - Testing")
         test_df = test_set['data']
         test_df = self.scaler.transform(test_df)
-        Y_hat_test = self._predict(test_df, self.best_theta)
+        Y_hat_test = self._predict(test_df, self.threshold)
 
         print("[*] - Computing Test result")
         weights_train = self.train_set["weights"].copy()
@@ -187,7 +197,7 @@ class Model():
 
         # Split the data into training and validation sets while preserving the proportion of samples with respect to the target variable
         train_df, valid_df, train_labels, valid_labels, train_weights, valid_weights = train_test_split(
-            self.train_set["data"],
+            self.train_set["data"], 
             self.train_set["labels"],
             self.train_set["weights"],
             test_size=0.05,
@@ -256,6 +266,10 @@ class Model():
                 "labels": mu_calc_set_labels,
                 "weights": mu_calc_set_weights
             }
+        
+
+        # print(self.mu_calc_set['data'])
+
 
         self.validation_sets = []
         # Loop 10 times to generate 10 validation sets
@@ -319,7 +333,7 @@ class Model():
         self._fit(train_data, train_labels, weights_train)
 
         print("[*] --- Predicting Train set")
-        self.train_set['predictions'] = (self.train_set['data'], self.best_theta)
+        self.train_set['predictions'] = (self.train_set['data'], self.threshold)
 
         self.train_set['score'] = self._return_score(self.train_set['data'])
 
@@ -364,24 +378,52 @@ class Model():
 
     def mu_hat_calc(self):
 
-        self.mu_calc_set['data'] = self.scaler.transform(self.mu_calc_set['data'])
-        Y_hat_mu_calc_set = self._predict(self.mu_calc_set['data'], self.best_theta)  
-        Y_mu_calc_set = self.mu_calc_set['labels']
-        weights_mu_calc_set = self.mu_calc_set['weights']
+        X_holdout = self.mu_calc_set['data'].copy()
+        X_holdout['weights'] = self.mu_calc_set['weights'].copy()
+        X_holdout['labels'] = self.mu_calc_set['labels'].copy()
 
-        # compute gamma_roi
-        weights_mu_calc_set_signal = weights_mu_calc_set[Y_mu_calc_set == 1]
-        weights_mu_calc_set_bkg = weights_mu_calc_set[Y_mu_calc_set == 0]
+        holdout_post = self.systematics(
+            data = X_holdout.copy(), 
+            tes = 1.0
+        ).data
 
-        Y_hat_mu_calc_set_signal = Y_hat_mu_calc_set[Y_mu_calc_set == 1]
-        Y_hat_mu_calc_set_bkg = Y_hat_mu_calc_set[Y_mu_calc_set == 0]
 
-        self.gamma_roi = (weights_mu_calc_set_signal[Y_hat_mu_calc_set_signal == 1]).sum()
+        label_holdout = holdout_post.pop('labels')
+        weights_holdout = holdout_post.pop('weights')
+        X_holdout_sc = self.scaler.transform(holdout_post)
 
-        # compute beta_roi
-        self.beta_roi = (weights_mu_calc_set_bkg[Y_hat_mu_calc_set_bkg == 1]).sum()
+        holdout_score = self._return_score(X_holdout_sc)
+
+        weights_holdout_signal= weights_holdout[label_holdout == 1]
+        weights_holdout_bkg = weights_holdout[label_holdout == 0]
+
+        score_holdout_signal = holdout_score[label_holdout == 1]
+        score_holdout_bkg = holdout_score[label_holdout == 0]
+
+        self.gamma_roi = (weights_holdout_signal[score_holdout_signal > self.threshold]).sum()
         if self.gamma_roi == 0:
             self.gamma_roi = EPSILON
+
+        self.beta_roi = (weights_holdout_bkg[score_holdout_bkg > self.threshold]).sum()
+
+        # self.mu_calc_set['data'] = self.scaler.transform(self.mu_calc_set['data'])
+        # Y_hat_mu_calc_set = self._predict(self.mu_calc_set['data'], self.threshold)  
+        # Y_mu_calc_set = self.mu_calc_set['labels']
+        # weights_mu_calc_set = self.mu_calc_set['weights']
+
+        # # compute gamma_roi
+        # weights_mu_calc_set_signal = weights_mu_calc_set[Y_mu_calc_set == 1]
+        # weights_mu_calc_set_bkg = weights_mu_calc_set[Y_mu_calc_set == 0]
+
+        # Y_hat_mu_calc_set_signal = Y_hat_mu_calc_set[Y_mu_calc_set == 1]
+        # Y_hat_mu_calc_set_bkg = Y_hat_mu_calc_set[Y_mu_calc_set == 0]
+
+        # self.gamma_roi = (weights_mu_calc_set_signal[Y_hat_mu_calc_set_signal == 1]).sum()
+
+        # # compute beta_roi
+        # self.beta_roi = (weights_mu_calc_set_bkg[Y_hat_mu_calc_set_bkg == 1]).sum()
+        # if self.gamma_roi == 0:
+        #     self.gamma_roi = EPSILON
 
     def amsasimov_x(self, s, b):
         '''
@@ -438,7 +480,7 @@ class Model():
         # Loop over theta candidates
         # try each theta on meta-validation set
         # choose best theta
-        for theta in self.theta_candidates:
+        for theta in self.threshold_candidates:
             meta_validation_set_df = self.scaler.transform(meta_validation_set["data"])    
             # Get predictions from trained model
             Y_hat_valid = self._predict(meta_validation_set_df, theta)
@@ -476,13 +518,13 @@ class Model():
             print("[!] - WARNING! All sigma squared are nan")
             index_of_least_sigma_squared = np.argmin(theta_sigma_squared)
 
-        self.best_theta = self.theta_candidates[index_of_least_sigma_squared]
-        print(f"[*] --- Best theta : {self.best_theta}")
+        self.threshold = self.threshold_candidates[index_of_least_sigma_squared]
+        print(f"[*] --- Best theta : {self.threshold}")
 
     def _validate(self):
         for valid_set in self.validation_sets:
             valid_set['data'] = self.scaler.transform(valid_set['data'])
-            valid_set['predictions'] = self._predict(valid_set['data'], self.best_theta)
+            valid_set['predictions'] = self._predict(valid_set['data'], self.threshold)
             valid_set['score'] = self._return_score(valid_set['data'])
 
     def _compute_validation_result(self):
@@ -555,23 +597,165 @@ class Model():
 
 
 
+
+
+    def nominal(self, theta):
+        """
+        Params: theta (the systematics) 
+
+        Functionality: determine nominal s and b, ie the signal rate and the background rate in
+                       the region of interest for different thetas (ie for different value for tes)
+
+        Returns: s, b
+        """
+
+        X_holdout = self.mu_calc_set['data'].copy()
+        # print(X_holdout)
+        X_holdout['weights'] = self.mu_calc_set['weights'].copy()
+        X_holdout['labels'] = self.mu_calc_set['labels'].copy()
+
+        holdout_post = self.systematics(
+            data = X_holdout.copy(), 
+            tes = theta
+        ).data
+
+
+        label_holdout = holdout_post.pop('labels')
+        weights_holdout = holdout_post.pop('weights')
+        X_holdout_sc = self.scaler.transform(holdout_post)
+
+        holdout_score = self._return_score(X_holdout_sc)
+
+        weights_holdout_signal= weights_holdout[label_holdout == 1]
+        weights_holdout_bkg = weights_holdout[label_holdout == 0]
+
+        score_holdout_signal = holdout_score[label_holdout == 1]
+        score_holdout_bkg = holdout_score[label_holdout == 0]
+
+        s = (weights_holdout_signal[score_holdout_signal > self.threshold]).sum()
+        if s == 0:
+            s = EPSILON
+
+        b = (weights_holdout_bkg[score_holdout_bkg > self.threshold]).sum()
+
+        return s, b
+
+        # X_mu_calc = self.mu_calc_set['data'].copy()
+        # # print(X_mu_calc)
+        # X_mu_calc['weights'] = self.mu_calc_set['weights'].copy()
+        # X_mu_calc['labels'] = self.mu_calc_set['labels'].copy()
+
+        # mu_calc_syst = self.systematics(
+        #     data=X_mu_calc.copy(),
+        #     tes=theta
+        # ).data
+
+
+        # label_mu_calc = mu_calc_syst.pop('labels')
+        # weights_mu_calc = mu_calc_syst.pop('weights')
+
+        # X_mu_calc_sc = self.scaler.transform(mu_calc_syst)
+        # mu_calc_val = self._return_score(X_mu_calc_sc)
+
+        # weights_mu_calc_signal = weights_mu_calc[label_mu_calc == 1]
+        # weights_mu_calc_bkg = weights_mu_calc[label_mu_calc == 0]
+
+
+        # mu_calc_val_signal = mu_calc_val[label_mu_calc ==1]
+        # mu_calc_val_bkg = mu_calc_val[label_mu_calc ==0]
+
+        # s = (weights_mu_calc_signal[mu_calc_val>self.threshold]).sum()  
+        # b = (weights_mu_calc_bkg[mu_calc_val_bkg>self.threshold]).sum()
+        # if s == 0:
+        #     s = EPSILON
+
+
+        # return s, b
+    
+
+
+    def _theta_plot(self):
+        """
+        Params: None
+
+        Functionality: Save the plots in the same file as the model serialization (see _save_model)
+
+        Returns: None
+        """
+
+        print("[*] Saving the plots")
+
+        
+        theta_list = np.linspace(0.9,1.1,10)
+        s_list = []
+        b_list = []
+        
+        for theta in theta_list:
+            s , b = self.nominal(theta)
+            s_list.append(s)
+            b_list.append(b)
+            # print(f"[*] --- s: {s}")
+            # print(f"[*] --- b: {b}")
+
+
+        fig_s = plt.figure()
+        plt.plot(theta_list, s_list, 'b.', label = 's')
+        plt.xlabel('theta')
+        plt.ylabel('events')
+        plt.legend()
+        # hep.atlas.text(loc=1, text='Internal')
+
+        # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
+        save_path_s = os.path.join(submissions_dir, "Plots and serialization/")
+        plot_file_s = os.path.join(save_path_s, "HGBC_s.png")
+
+        plt.savefig(plot_file_s)
+        plt.close(fig_s) # So the figure is not diplayed 
+        
+
+
+
+        fig_b = plt.figure()
+        plt.plot(theta_list, b_list, 'b.', label = 'b')
+        plt.xlabel('theta')
+        plt.ylabel('events')
+        plt.legend()
+        # hep.atlas.text(loc=1, text='Internal')
+
+        # plot file location on Atlas1 (same as local, but I can use linux functionalities for paths)
+        save_path_b = os.path.join(submissions_dir, "Plots and serialization/")
+        plot_file_b = os.path.join(save_path_b, "HGBC_b.png")
+
+        plt.savefig(plot_file_b)
+        plt.close(fig_b) # So the figure is not diplayed 
+
+
+
     def _save_model(self):
-        print("[*] - Saving Model and Plots")
+
+
+        save_dir= os.path.join(submissions_dir, "Plots and serialization/")
+        model_path = os.path.join(save_dir, "model.pkl")
+        settings_path = os.path.join(save_dir, "settings.pkl")
+        scaler_path = os.path.join(save_dir, 'scaler.pkl')
+
+        print("[*] Saving Model")
+        print(f"[*] --- model path: {model_path}")
+        print(f"[*] --- settings path: {settings_path}")
+        print(f"[*] --- scaler path: {scaler_path}")
 
 
         settings = {
             "threshold": self.threshold,
-            "calibration": self.calibration,
-            "control_bins": self.control_bins,
-            "bin_nums": self.bins,
-            "coef_s_list": self.coef_s_list,
-            "coef_b_list": self.coef_b_list
+            "beta_roi": self.beta_roi,
+            "gamma_roi": self.gamma_roi
         }
 
 
-        fig = plt.figure()
+        pickle.dump(self.model, open(model_path, "wb"))
 
-        plt.close(fig) # So the figure is not diplayed 
-        plt.savefig() # the figure should be save in the same folder as the settings (serialzation of the model)
+        pickle.dump(settings, open(settings_path, "wb"))
 
-        
+        pickle.dump(self.scaler, open(scaler_path, "wb"))
+
+        print("[*] - Model saved")
